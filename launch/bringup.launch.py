@@ -44,7 +44,7 @@ def execution_stage(context: LaunchContext,
     use_docking_adapter = str(docking_adapter.perform(context))
     use_mock = str(mock_arm.perform(context))
 
-    launches = []
+    launch_actions = []
 
     rp_ns = ""
     if (robot_namespace.perform(context) != "/"):
@@ -83,7 +83,7 @@ def execution_stage(context: LaunchContext,
         arguments=[urdf]
     )
 
-    launches.append(start_robot_state_publisher_cmd)
+    launch_actions.append(start_robot_state_publisher_cmd)
 
     #  Launch hardware nodes
     # 1. Relayboard
@@ -97,7 +97,7 @@ def execution_stage(context: LaunchContext,
             condition=UnlessCondition(mock_arm)
         )
 
-    launches.append(relayboard)
+    launch_actions.append(relayboard)
 
     # 2. Kinematics
     kinematics = IncludeLaunchDescription(
@@ -110,7 +110,7 @@ def execution_stage(context: LaunchContext,
             condition=UnlessCondition(mock_arm)
         )
 
-    launches.append(kinematics)
+    launch_actions.append(kinematics)
 
     # 3. Teleop
     teleop = IncludeLaunchDescription(
@@ -123,7 +123,7 @@ def execution_stage(context: LaunchContext,
             condition=UnlessCondition(mock_arm)
         )
 
-    launches.append(teleop)
+    launch_actions.append(teleop)
 
     # 4. Laser
     scanner_model = scanner_typ.split('_')[1] if '_' in scanner_typ else scanner_typ
@@ -137,7 +137,7 @@ def execution_stage(context: LaunchContext,
             condition=UnlessCondition(mock_arm)
         )
 
-    launches.append(laser)
+    launch_actions.append(laser)
 
     # 5. IMU
     if imu_enabl.lower == 'true':
@@ -153,7 +153,7 @@ def execution_stage(context: LaunchContext,
                 condition=UnlessCondition(mock_arm)
             )
 
-        launches.append(imu)
+        launch_actions.append(imu)
 
     # 6. D435
     # TODO: Add support for namespacing
@@ -167,7 +167,7 @@ def execution_stage(context: LaunchContext,
                 condition=UnlessCondition(mock_arm)
             )
 
-        launches.append(d435)
+        launch_actions.append(d435)
 
     # 7. Arm - Bringing up drivers for Universal Arm
     # TODO: Add support for Elite Robots
@@ -198,19 +198,22 @@ def execution_stage(context: LaunchContext,
                 }.items()
             )
 
-        launches.append(ur_arm)
+        launch_actions.append(ur_arm)
 
         # For 2f_140
-        if (gripper_typ == "2f_140"):
-            gripper_2f_140 = IncludeLaunchDescription(
+        if (gripper_typ != ""):
+            gripper_launch = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     os.path.join(get_package_share_directory('neo_mpo_700-2'),
                             'configs/robotiq',
-                            'robotiq_control.launch.py')
-                    )
-                )
+                            'gripper_control.launch.py')
+                    ),
+                launch_arguments={
+                    'gripper_type': gripper_type
+                }.items()
+            )
 
-            launches.append(gripper_2f_140)
+            launch_actions.append(gripper_launch)
 
         # For Epick
         elif (gripper_typ == "epick"):
@@ -222,7 +225,7 @@ def execution_stage(context: LaunchContext,
                     )
                 )
 
-            launches.append(gripper_epick)
+            launch_actions.append(gripper_epick)
 
     # Relaying lidar data to /scan topic
     relay_topic_lidar1 = Node(
@@ -245,10 +248,10 @@ def execution_stage(context: LaunchContext,
             condition=UnlessCondition(mock_arm)
             )
 
-    launches.append(relay_topic_lidar1)
-    launches.append(relay_topic_lidar2)
+    launch_actions.append(relay_topic_lidar1)
+    launch_actions.append(relay_topic_lidar2)
 
-    return launches
+    return launch_actions
 
 def generate_launch_description():
 
