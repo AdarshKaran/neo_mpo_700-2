@@ -1,0 +1,47 @@
+controller_manager:
+  ros__parameters:
+    robotiq_2f_140_gripper_controller:
+      type: position_controllers/GripperActionController
+
+    robotiq_2f_85_gripper_controller:
+      type: position_controllers/GripperActionController
+
+    robotiq_activation_controller:
+      type: robotiq_controllers/RobotiqActivationController
+
+    epick_controller:
+      type: epick_controllers/EpickController
+
+    epick_gripper_action_controller:
+      type: epick_controllers/EpickGripperActionController
+
+    epick_status_publisher_controller:
+      type: epick_controllers/EpickStatusPublisherController
+
+    # The way this is currently implemented upstream doesn't really work for us. When using
+    # position control, the robot will have a tracking error. However, limits will be enforced
+    # from the currently reported position, effectively limiting the possible step size using the
+    # joints' velocity limits. Until this is resolved, we will keep command limits non-enforced.
+    # Note: On Jazzy this is the default behavior, anyway. For Rolling / Kilted this defaults to
+    # true.
+    enforce_command_limits: false
+
+robotiq_2f_140_gripper_controller:
+  ros__parameters:
+    update_rate: 100 # Hz TODO: check if this is correct
+    default: true
+    joint: finger_joint
+    use_effort_interface: true
+    use_speed_interface: true
+
+robotiq_2f_85_gripper_controller:
+  ros__parameters:
+    update_rate: 100 # Hz TODO: check if this is correct
+    default: true
+    joint: robotiq_85_left_knuckle_joint
+    use_effort_interface: true
+    use_speed_interface: true
+
+robotiq_activation_controller:
+  ros__parameters:
+    default: true

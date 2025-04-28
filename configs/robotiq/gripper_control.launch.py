@@ -5,13 +5,16 @@ import launch
 from launch import LaunchDescription, LaunchContext
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.parameter_descriptions import ParameterFile
+from launch_ros.substitutions import FindPackageShare
 import os
 
 def execution_stage(context: LaunchContext,
                     gripper_type,
                     controller_spawner_timeout,
-                    use_mock):
+                    use_mock,
+                    controllers_file):
 
     launch_actions = []
 
@@ -32,11 +35,12 @@ def execution_stage(context: LaunchContext,
         robotiq_gripper_controller_spawner = Node(
             package="controller_manager",
             executable="spawner",
-            arguments=[initial_gripper_controller_name, "-c",
-                "/controller_manager",
-                "--controller-manager-timeout",
-                controller_spawner_timeout
-            ]
+            arguments=[
+                initial_gripper_controller_name,
+                "--controller-manager", "/controller_manager",
+                "-p", controllers_file,
+                "--controller-manager-timeout", controller_spawner_timeout,
+            ],
         )
 
         launch_actions.append(robotiq_gripper_controller_spawner)
@@ -97,22 +101,32 @@ def generate_launch_description():
     )
 
     declare_mock_arm_cmd = DeclareLaunchArgument(
-            'use_mock', default_value='False',
-            description="Mock arm and gripper (if available)"
-        )
-    
+        'use_mock', default_value='False',
+        description="Mock arm and gripper (if available)"
+    )
+
+    declare_controllers_cmd = DeclareLaunchArgument(
+        "controllers_file",
+        default_value=PathJoinSubstitution(
+            [FindPackageShare("robotiq_description"), "config", "robotiq_controllers.yaml"]
+        ),
+        description="YAML file with the controllers configuration.",
+    )
+
     opq_function = OpaqueFunction(
         function=execution_stage,
         args=[
             LaunchConfiguration('gripper_type'),
             LaunchConfiguration('controller_spawner_timeout'),
-            LaunchConfiguration('use_mock')
+            LaunchConfiguration('use_mock'),
+            LaunchConfiguration('controllers_file')
         ])
 
     ld = LaunchDescription([
         declare_gripper_type_cmd,
         declare_timeout_cmd,
         declare_mock_arm_cmd,
+        declare_controllers_cmd,
         opq_function
     ])
     return ld
